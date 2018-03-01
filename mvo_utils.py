@@ -23,14 +23,6 @@ sleep_time = 5
 sector_tickers_map = {}
 companies = pd.DataFrame([])
 
-ticker_map = {
-    'benchmark': ['SPY'],
-    'equity': ['VTI','VTV','VOE','VBR','VEA','VWO'],
-    'fixed_income': ['VTIP', 'SHV', 'MUB', 'LQD', 'BNDX', 'EMB'],
-    'spy_sectors': ['XLE', 'XLU', 'XLK', 'XLB', 'XLP', 'XLY', 'XLI', 'XLV', 'XLF', 'XLRE'],
-    'ark_etfs': ['ARKG', 'ARKK', 'ARKQ', 'ARKW']
-}
-
 # Mean variance optimization
 def get_mean_variance(rets):
     w_len = rets.shape[1] # number of columns
@@ -151,9 +143,10 @@ def port_metrics(px, rec):
     cov_matrix = returns.cov()
     weights = np.asarray(rec.values)
     mult = len(mean_daily_returns)
-    port_return = np.sum(mean_daily_returns.values * weights) * mult
+    #port_return = np.sum(mean_daily_returns.values * weights) * mult # bug fix
+    port_return = np.dot(mean_daily_returns.values, weights) * mult
     port_risk = np.sqrt(np.dot(weights.T, np.dot(cov_matrix.values, weights))) * np.sqrt(mult)
-    return port_return, port_risk[0][0]
+    return port_return[0], port_risk[0][0]
 
 # Sector analytics
 def check_sector_vars(group, dwld_key, frame, gamma):
@@ -209,22 +202,6 @@ def plot_two_series(tsa, tsb, label1, label2, xlabel, ylabel, title):
     
 # DOWNLOAD / LOAD Utility Methods
 
-# Downloads pricing on all components for each ETF
-def get_pricing(fname, ticker_list, start_date):
-    if log: print("Getting pricing for:", fname, start_date)
-    px = web.DataReader(ticker_list,data_source='yahoo',start=start_date)['Adj Close']
-    px.sort_index(ascending=True, inplace=True)
-    px.to_csv(pricing_path + fname)
-    return px
-# Load pricing from hard drive
-
-def load_pricing(f, idx_col):
-    fname = pricing_path + f
-    px = pd.read_csv(fname, index_col=idx_col, parse_dates=True)
-    px.sort_index(ascending=True, inplace=True)
-    if log: print("Loaded pricing for {}, with shape {}".format(f, px.shape))
-    return px
-
 # Load component from ETF holding CSVs
 col_names = ['Symbol','Company', 'Weight']
 def load_components(cos, pattern, cols, idxcol, sectors, srows=1):
@@ -241,6 +218,22 @@ def load_components(cos, pattern, cols, idxcol, sectors, srows=1):
         cos = cos.append(df)
     return cos
 
+# Load pricing from hard drive
+def load_pricing(f, idx_col):
+    fname = pricing_path + f
+    px = pd.read_csv(fname, index_col=idx_col, parse_dates=True)
+    px.sort_index(ascending=True, inplace=True)
+    if log: print("Loaded pricing for {}, with shape {}".format(f, px.shape))
+    return px
+
+# Downloads pricing on all components for each ETF
+def get_pricing(fname, ticker_list, start_date):
+    if log: print("Getting pricing for:", fname, start_date)
+    px = web.DataReader(ticker_list,data_source='yahoo',start=start_date)['Adj Close']
+    px.sort_index(ascending=True, inplace=True)
+    px.to_csv(pricing_path + fname)
+    return px
+
 # Exception safe downloader
 def get_safe_pricing(fname, ticker_list, s_date):
     while True:
@@ -250,7 +243,7 @@ def get_safe_pricing(fname, ticker_list, s_date):
             print("Error: {0}, waiting to try again in {1}".format(err, sleep_time))
             sleep(sleep_time)
 
-            #For each ETF downloads 
+#For each ETF downloads 
 def refresh_components(etfs):
     while len(etfs) > 0: 
         val = etfs[-1]; 
