@@ -19,7 +19,6 @@ hist_window = frame * 5 #for historical pricing
 date_fmt = '%Y-%m-%d'
 start_date = datetime.now() - timedelta(hist_window)
 start_date = start_date.strftime(date_fmt)
-end_date = datetime.now().strftime(date_fmt)
 sleep_time = 5
 
 sector_tickers_map = {}
@@ -232,7 +231,7 @@ def load_pricing(f, idx_col):
 def get_pricing(fname, ticker_list, start_date):
     if log: print("Getting pricing for:", fname, start_date)
     #px = web.DataReader(ticker_list,data_source='yahoo',start=start_date)['Adj Close']
-    px = yf.download(ticker_list, start=start_date, end=end_date)['Adj Close']
+    px = yf.download(ticker_list, start=start_date)['Adj Close']
     if isinstance(px, pd.DataFrame)==False: 
         px=px.to_frame()
         px.columns=ticker_list
