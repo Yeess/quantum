@@ -7,6 +7,7 @@ import pandas as pd
 import cvxpy as cvx
 import re, os
 import matplotlib.pyplot as plt
+import fix_yahoo_finance as yf
 
 component_path = "./sector_components/"
 pricing_path = "./pricing/"
@@ -15,7 +16,7 @@ pricing_path = "./pricing/"
 frame = 20 #for limiting the range of optimizations, 1 year
 hist_window = frame * 5 #for historical pricing
 
-date_fmt = '%m-%d-%Y'
+date_fmt = '%Y-%m-%d'
 start_date = datetime.now() - timedelta(hist_window)
 start_date = start_date.strftime(date_fmt)
 sleep_time = 5
@@ -229,7 +230,11 @@ def load_pricing(f, idx_col):
 # Downloads pricing on all components for each ETF
 def get_pricing(fname, ticker_list, start_date):
     if log: print("Getting pricing for:", fname, start_date)
-    px = web.DataReader(ticker_list,data_source='yahoo',start=start_date)['Adj Close']
+    #px = web.DataReader(ticker_list,data_source='yahoo',start=start_date)['Adj Close']
+    px = yf.download(ticker_list, start=start_date, end="2018-03-07")['Adj Close']
+    if isinstance(px, pd.DataFrame)==False: 
+        px=px.to_frame()
+        px.columns=ticker_list
     px.sort_index(ascending=True, inplace=True)
     px.to_csv(pricing_path + fname)
     return px
